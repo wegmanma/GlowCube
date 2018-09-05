@@ -4,7 +4,7 @@
 
 void timers_init(uint32_t value_top) {
 	CMU_ClockEnable(cmuClock_TIMER0, true);
-	CMU_ClockEnable(cmuClock_TIMER1, true);
+	// CMU_ClockEnable(cmuClock_TIMER1, true);
 	CMU_ClockEnable(cmuClock_TIMER2, true);
 	/* load default values for general TIMER configuration */
 
@@ -18,9 +18,9 @@ void timers_init(uint32_t value_top) {
 	TIMER_InitCC_TypeDef timerInitCC = TIMER_INITCC_DEFAULT;
 
 	timerInitCC.mode = timerCCModePWM;            // configure as PWM channel
-	GPIO_PinModeSet(gpioPortA, 0, gpioModeWiredAnd, 0);
-	GPIO_PinModeSet(gpioPortA, 1, gpioModeWiredAnd, 0);
-	GPIO_PinModeSet(gpioPortA, 2, gpioModeWiredAnd, 0);
+	GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0); //all back to wiredAnd
+	GPIO_PinModeSet(gpioPortA, 1, gpioModePushPull, 0);
+	GPIO_PinModeSet(gpioPortA, 2, gpioModePushPull, 0);
 	GPIO_PinModeSet(gpioPortA, 8, gpioModeWiredAnd, 0);
 	GPIO_PinModeSet(gpioPortA, 9, gpioModeWiredAnd, 0);
 	TIMER_InitCC(TIMER0, 2, &timerInitCC);  // CC channel 2 is use
@@ -29,10 +29,10 @@ void timers_init(uint32_t value_top) {
 	TIMER_InitCC(TIMER2, 1, &timerInitCC);  // CC channel 1 is used
 	TIMER_InitCC(TIMER2, 0, &timerInitCC);  // CC channel 0 is used
 	TIMER_CompareSet(TIMER0, 2, 30);        // CC value defines PWM active time - Start Pulse
-	TIMER_CompareSet(TIMER0, 1, 00);  // CC value defines PWM active time - PWM1
-	TIMER_CompareSet(TIMER0, 0, 0);  // CC value defines PWM active time - PWM2
+	TIMER_CompareSet(TIMER0, 1, 30);  // CC value defines PWM active time - PWM1
+	TIMER_CompareSet(TIMER0, 0, 30);  // CC value defines PWM active time - PWM2
 	TIMER_CompareSet(TIMER2, 1, 30);  // CC value defines PWM active time - PWM1
-	TIMER_CompareSet(TIMER2, 0, 0);  // CC value defines PWM active time - PWM2
+	TIMER_CompareSet(TIMER2, 0, 30);  // CC value defines PWM active time - PWM2
 	 /* route output to location #3 and enable output CC0 */
 
     TIMER0 ->ROUTE |= (TIMER_ROUTE_LOCATION_LOC0 | TIMER_ROUTE_CC2PEN);
