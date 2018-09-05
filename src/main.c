@@ -28,10 +28,6 @@ int main(void)
 	timers_init(100); // Initialize Timers for Setpoint CCs
 	COM_Init(); // Initialize Communications
 
-
-
-
-
     GPIO->P[gpioPortC].DOUTCLR = 1 << 3; // Handshake CTS Output Low
     uint8_t data_to_send[8] = {0x8,0x4,0x6,0x1,0x2,0xD,0x4,0x1};
     const uint32_t data_length           = sizeof(data_to_send);
