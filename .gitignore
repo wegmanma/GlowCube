@@ -1,0 +1,6 @@
+*.wspx
+*.ld
+GNU ARM v4.9.3 - Debug/*
+emlib/
+CMSIS/
+.settings/
