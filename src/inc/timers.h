@@ -11,7 +11,7 @@
 
 void timers_init(uint32_t value_top);
 
-void ML_setLight(uint32_t set1, uint32_t set2);
+void ML_setLight(uint32_t red, uint32_t green, uint32_t blue);
 
 
 #endif /* SRC_TIMERS_H_ */

@@ -162,10 +162,12 @@ bool COM_TX_Busy(void) {
 
 void COM_TX_PutData(int *dataPtr, uint32_t dataLen)
 {
+	GPIO->P[gpioPortC].DOUTSET = 1 << 3; // Handshake CTS Output High
 	int i;
 	for (i=0;i<dataLen;i++) {
 		USART_Tx(COM_UART,dataPtr[i]);
 	}
+	GPIO->P[gpioPortC].DOUTCLR = 1 << 3; // Handshake CTS Output High
 }
 
 void UART0_RX_IRQHandler(void)
