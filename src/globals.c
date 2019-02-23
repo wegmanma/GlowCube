@@ -17,7 +17,7 @@ void INIT_XOclocks() {
 	// High frequency clock
 	CMU_HFRCOBandSet(cmuHFRCOBand_14MHz);
 	CMU_OscillatorEnable(cmuOsc_USHFRCO, true, true);
-	CMU_ClockSelectSet(cmuClock_HF, cmuSelect_USHFRCODIV2);
+	CMU_ClockSelectSet(cmuClock_HF, cmuSelect_USHFRCO);
 	CMU_ClockDivSet(cmuClock_HFPER, cmuClkDiv_1);
 	CMU_ClockEnable(cmuClock_HFPER, true);
 }

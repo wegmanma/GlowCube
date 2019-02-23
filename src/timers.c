@@ -1,6 +1,9 @@
 #include "em_gpio.h"
 #include "em_timer.h"
 #include "em_cmu.h"
+#include "inc/timers.h"
+
+extern uint32_t counter;
 
 void timers_init(uint32_t value_top) {
 	GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0); //all back to wiredAnd
@@ -50,19 +53,19 @@ void timers_init(uint32_t value_top) {
     TIMER_IntEnable(TIMER0, TIMER_IF_OF);          // enable timer overflow interrupt
     NVIC_EnableIRQ(TIMER0_IRQn);
 }
-void ML_setLight(uint32_t red, uint32_t green, uint32_t blue){
+void ML_setLight(uint32_t red, uint32_t green, uint32_t blue, uint32_t white){
 
-	if ((red==0)||(blue==0)||(green==0)) {
-		TIMER_CompareSet(TIMER0, 0, 0);
-	} else {
-		TIMER_CompareSet(TIMER0, 0, 0);// TIMER_CompareSet(TIMER0, 1, (red+green+blue+blue)>>2);
-	}
+
+	TIMER_CompareSet(TIMER0, 0, white);
+
 
 	TIMER_CompareSet(TIMER2, 0, green); // green led
-	TIMER_CompareSet(TIMER0, 1, blue); // blue led
-	TIMER_CompareSet(TIMER2, 1, red); // red ball
+	TIMER_CompareSet(TIMER0, 1, 0); // blue led
+	TIMER_CompareSet(TIMER2, 1, 0); // red ball
 	TIMER_CompareSet(TIMER0, 2, red); //red led
 }
 
-
-
+void ML_wait(uint32_t duration) {
+	counter = 0;
+	 while(counter<duration) {}
+}

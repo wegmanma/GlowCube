@@ -15,7 +15,7 @@
 
 #define COM_UART		USART0				///< UART for communication
 #define COM_CLOCK		cmuClock_USART0	///< UART clock
-#define COM_LOCATION	USART_ROUTE_LOCATION_LOC5	///< TX RX route
+#define COM_LOCATION	USART_ROUTE_LOCATION_LOC6	///< TX RX route
 #define COM_TX_PORT		gpioPortC			///< Port for TX
 #define COM_TX_PIN		0					///< Pin for TX
 #define COM_RX_PORT		gpioPortC			///< Port for RX
@@ -37,6 +37,8 @@ char RX_buf[COM_BUF_SIZE] = "";				///< receive buffer
 uint8_t TX_index = 0;						///< transmit buffer index
 uint8_t RX_index = 0;						///< receive buffer index
 
+
+
 volatile struct circularBuffer
 {
   uint8_t  data[COM_BUF_SIZE];  /* data buffer */
@@ -47,10 +49,10 @@ volatile struct circularBuffer
 } rxBuf, txBuf = { {0}, 0, 0, 0, false };
 
 void COM_Init(void) {
+
 	CMU_ClockEnable(COM_CLOCK, true);		// Enable USART clock
 
 	/* Configure the GPIOs */
-	CMU_ClockEnable(cmuClock_GPIO, true);	// Enable clock for GPIO module
 	GPIO_PinModeSet(COM_TX_PORT, COM_TX_PIN, gpioModePushPull, 1);
 	GPIO_PinModeSet(COM_RX_PORT, COM_RX_PIN, gpioModeInput, 0);
 	// GPIO_PinModeSet(COM_RX_PORT, COM_RX_PIN, gpioModeInputPull, 1); 	// with pullup
@@ -61,7 +63,7 @@ void COM_Init(void) {
 	USART_InitAsync_TypeDef usartInit = USART_INITASYNC_DEFAULT;
 	  usartInit.enable       = usartDisable;   /* Don't enable UART upon intialization */
 	  usartInit.refFreq      = 0;              /* Provide information on reference frequency. When set to 0, the reference frequency is */
-	  usartInit.baudrate     = 230400;         /* Baud rate */
+	  usartInit.baudrate     = 115200;         /* Baud rate */
 	  usartInit.oversampling = usartOVS16;     /* Oversampling. Range is 4x, 6x, 8x or 16x */
 	  usartInit.databits     = usartDatabits8; /* Number of data bits. Range is 4 to 10 */
 	  usartInit.parity       = usartNoParity;  /* Parity mode */
@@ -76,18 +78,14 @@ void COM_Init(void) {
 
 
 	/* Configure interrupts */
-	  // USART_IntClear(COM_UART, USART_IF_RXDATAV);
-	  // USART_IntEnable(COM_UART, USART_IF_RXDATAV);
-	  // NVIC_ClearPendingIRQ(USART0_RX_IRQn);
-	  // NVIC_ClearPendingIRQ(USART0_TX_IRQn);
-	  // NVIC_EnableIRQ(USART0_RX_IRQn);
-	  // NVIC_EnableIRQ(USART0_TX_IRQn);
 
+	  USART_IntClear(COM_UART, USART_IF_RXDATAV);
+	  USART_IntEnable(COM_UART, USART_IF_RXDATAV);
+	  NVIC_ClearPendingIRQ(USART0_RX_IRQn);
+	  NVIC_ClearPendingIRQ(USART0_TX_IRQn);
+	  NVIC_EnableIRQ(USART0_RX_IRQn);
+	  NVIC_EnableIRQ(USART0_TX_IRQn);
 
-	/* Configure Handshake */
-	GPIO_PinModeSet(COM_CTS_PORT, COM_CTS_PIN, gpioModeInput, 0);
-	GPIO_PinModeSet(COM_RTS_PORT, COM_RTS_PIN, gpioModePushPull, 0);
-	GPIO_IntConfig(COM_CTS_PORT, COM_CTS_PIN, true, false, true);
 
 	USART_Enable(COM_UART, usartEnable);
 }
@@ -127,14 +125,26 @@ void uartPutChar(uint8_t ch)
   USART_IntEnable(COM_UART, USART_IF_TXBL);
 }
 
-uint32_t COM_RX_GetData(uint8_t * dataPtr, uint32_t dataLen)
+uint32_t COM_RX_GetData(uint8_t * dataPtr)
 {
+  uint32_t dataLen = 4;
+  bool blocker = true;
   uint32_t i = 0;
-
+  uint32_t j = 0;
   /* Wait until the requested number of bytes are available */
   if (rxBuf.pendingBytes < dataLen)
   {
-    while (rxBuf.pendingBytes < dataLen) ;
+    while (blocker == true) {
+    	if (rxBuf.pendingBytes < dataLen) {
+    		ML_wait(1);
+    		j++;
+    		if (j>=2500) {
+    			return 0;
+    		}
+    	} else {
+    		blocker = false;
+    	}
+    }
   }
 
   if (dataLen == 0)
@@ -146,9 +156,16 @@ uint32_t COM_RX_GetData(uint8_t * dataPtr, uint32_t dataLen)
   while (i < dataLen)
   {
     *(dataPtr + i) = rxBuf.data[rxBuf.rdI];
+    if (i == 1) {
+    	dataLen = dataLen+*(dataPtr + i);
+    }
+    if (*(dataPtr + dataLen)==0x88) {
+    	dataLen = dataLen+*(dataPtr + dataLen+1);
+    }
     rxBuf.rdI      = (rxBuf.rdI + 1) % COM_BUF_SIZE;
     i++;
   }
+
 
   /* Decrement pending byte counter */
   rxBuf.pendingBytes -= dataLen;
@@ -162,21 +179,21 @@ bool COM_TX_Busy(void) {
 
 void COM_TX_PutData(int *dataPtr, uint32_t dataLen)
 {
-	GPIO->P[gpioPortC].DOUTSET = 1 << 3; // Handshake CTS Output High
+
 	int i;
 	for (i=0;i<dataLen;i++) {
 		USART_Tx(COM_UART,dataPtr[i]);
 	}
-	GPIO->P[gpioPortC].DOUTCLR = 1 << 3; // Handshake CTS Output High
+
 }
 
-void UART0_RX_IRQHandler(void)
+void USART0_RX_IRQHandler(void)
 {
+	USART_IntGet(USART0);
   /* Check for RX data valid interrupt */
-
   if (USART0->STATUS & USART_STATUS_RXDATAV)
   {
-
+	  COM_RX_Available_Flag = true;
       /* Copy data into RX Buffer */
       uint8_t rxData = USART_Rx(COM_UART);
       rxBuf.data[rxBuf.wrI] = rxData;
@@ -194,7 +211,7 @@ void UART0_RX_IRQHandler(void)
     }
 }
 
-void UART0_TX_IRQHandler(void)
+void USART0_TX_IRQHandler(void)
 {
   /* Clear interrupt flags by reading them. */
   USART_IntGet(USART0);
